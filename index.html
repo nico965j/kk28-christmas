@@ -2,32 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>My Power BI Dashboard</title>
-    <!-- If you're using jQuery, make sure to include it -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Include the Power BI JavaScript API -->
-    <script src="https://cdn.powerbi.com/libs/powerbi-client/2.18.5/powerbi.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen 28 - Christmas Appleskive Challenge</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://app.powerbi.com/powerbi-client/dist/powerbi.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 10px 0;
+        }
+        #embedContainer {
+            height: 600px;
+            border: 1px solid #eaeaea;
+        }
+    </style>
 </head>
 <body>
-    <h1>Kitchen 28 - Appleskive Challenge</h1>
-    <div id="embedContainer" style="height: 600px; width: 100%;"></div>
+    <div class="container">
+        <div class="header">
+            <h1>Kitchen 28 - Christmas Appleskive Challenge</h1>
+        </div>
+        <div id="embedContainer">
+            <!-- Power BI report will be embedded here -->
+        </div>
+    </div>
+
     <script>
-        // Ensure this is defined globally if it's needed in your config
+        let loadedResolve, reportLoaded = new Promise((res, rej) => { loadedResolve = res; });
+        let renderedResolve, reportRendered = new Promise((res, rej) => { renderedResolve = res; });
+
+        // Get models. models contains enums that can be used.
         let models = window['powerbi-client'].models;
 
-        async function embedPowerBIReport() {
-            // Replace these placeholders with your actual values
-            let accessToken = 'EMBED_ACCESS_TOKEN'; // You must put your actual access token here
-            let embedUrl = 'EMBED_URL'; // You must put your actual embed URL here
-            let embedReportId = 'REPORT_ID'; // You must put your actual report ID here
-            let tokenType = models.TokenType.Embed; // Or models.TokenType.Aad depending on your authentication method
+        // Embed a Power BI report in the given HTML element with the given configurations
+        function embedPowerBIReport() {
+            // Read embed application token
+            let accessToken = 'EMBED_ACCESS_TOKEN'; // Replace with your actual Embed Token
 
+            // Read embed URL
+            let embedUrl = 'EMBED_URL'; // Replace with your actual Embed URL
+
+            // Read report Id
+            let embedReportId = 'REPORT_ID'; // Replace with your actual Report ID
+
+            // Read embed type from radio
+            let tokenType = models.TokenType.Embed;
+
+            // We give All permissions to demonstrate switching between View and Edit mode and saving report.
+            let permissions = models.Permissions.All;
+
+            // Create the embed configuration object for the report
             let config = {
                 type: 'report',
                 tokenType: tokenType,
                 accessToken: accessToken,
                 embedUrl: embedUrl,
                 id: embedReportId,
+                permissions: permissions,
                 settings: {
                     panes: {
                         filters: {
@@ -45,20 +90,51 @@
                 }
             };
 
-            let embedContainer = document.getElementById('embedContainer');
+            // Get a reference to the embedded report HTML element
+            let embedContainer = $('#embedContainer')[0];
+
+            // Embed the report and display it within the div container.
             let report = powerbi.embed(embedContainer, config);
 
-            try {
-                await report.render();
-                console.log('Report render succeeded');
-            } catch (error) {
-                console.error('Error during report rendering', error);
-            }
+            // report.off removes all event handlers for a specific event
+            report.off("loaded");
+
+            // report.on will add an event handler
+            report.on("loaded", function () {
+                loadedResolve();
+                report.off("loaded");
+            });
+
+            // report.off removes all event handlers for a specific event
+            report.off("error");
+
+            report.on("error", function (event) {
+                console.error(event.detail);
+            });
+
+            // report.off removes all event handlers for a specific event
+            report.off("rendered");
+
+            // report.on will add an event handler
+            report.on("rendered", function () {
+                renderedResolve();
+                report.off("rendered");
+            });
         }
 
         embedPowerBIReport();
+
+        // Wait for the report to load
+        reportLoaded.then(function() {
+            console.log("Report loaded");
+            // Insert here the code you want to run after the report is loaded
+        });
+
+        // Wait for the report to render
+        reportRendered.then(function() {
+            console.log("Report rendered");
+            // Insert here the code you want to run after the report is rendered
+        });
     </script>
 </body>
 </html>
-
-
